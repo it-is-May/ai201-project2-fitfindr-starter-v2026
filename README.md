@@ -41,7 +41,11 @@
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
 
+FitFindr is an AI agent that takes a user query, searches fashion listings, 
+and builds outfit recommendations using saved wardrobe items and fit cards.
 
+Key listing fields identified from `data/listings.json`:
+- `id`, `title`, `price`, `size`, `brand`, `color`, `platform`, `description`
 
 ---
 
