@@ -28,6 +28,7 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 <!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
      "my search is a plain keyword match and some phrasings will miss" is a
      real answer. -->
+Query parsing uses basic string splitting and pattern matching, so non-standard phrasings might occasionally fail to extract the right parameters. A 4/5 target allows for minor parsing or model tool execution variances while requiring high baseline completion.
 
 ---
 
@@ -39,10 +40,11 @@ Given a query that matches no listings, the agent stops before calling
 **Why this target:**
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
      about this path? -->
+Evaluating an empty list `[]` in Python code is a deterministic boolean branch (`if not search_results`). Unlike natural language generation, control flow code does not vary, so it should execute correctly 100% of the time.
 
 ---
 
-## 3. Something about state
+## 3. State integrity across tool transitions
 
 <!-- YOU WRITE THIS ONE.
 
@@ -53,16 +55,14 @@ Given a query that matches no listings, the agent stops before calling
      look like state failure — it looks like a tool problem. Something that
      compares session["selected_item"] against what actually reached
      suggest_outfit is the shape you're after. -->
-
-
+Across 5 successful agent runs, `session["selected_item"]["title"]` matches the exact item title passed as input to `suggest_outfit` and `create_fit_card` in 5 of 5 tries.
 
 **Why this target:**
-
-
+Storing and retrieving data using Python dictionary keys in session state is fully deterministic. Because state assignments and function parameter passing do not involve model generation or external API variance, data transfer between session state and tool inputs should succeed 100% of the time if written correctly.
 
 ---
 
-## 4. Something about the fit card
+## 4. Fit card includes listing price, platform, and title
 
 <!-- YOU WRITE THIS ONE.
 
@@ -74,16 +74,14 @@ Given a query that matches no listings, the agent stops before calling
      mentions the price? Two different items producing the same opening
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
-
-
+For 5 distinct matching queries, the generated string in `session["fit_card"]` includes the price (formatted with `$`), platform name, and title of `session["selected_item"]` in at least 4 of 5 tries.
 
 **Why this target:**
-
-
+Because LLM output is non-deterministic, the model might occasionally rephrase text or omit a metadata detail. Target 4/5 allows room for minor prompt generation variances while ensuring that essential product information is consistently present in the generated social media caption.
 
 ---
 
-## 5. Your choice
+## 5. Search respects maximum price constraint
 
 <!-- YOU WRITE THIS ONE TOO.
 
@@ -91,12 +89,10 @@ Given a query that matches no listings, the agent stops before calling
      wardrobe path, what happens when the model can't be reached, whether the
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
-
-
+When a query specifies a maximum price limit (e.g., "under $30"), `session["selected_item"]["price"]` is less than or equal to `session["parsed"]["max_price"]` in 5 of 5 successful runs.
 
 **Why this target:**
-
-
+Filtering listings by price (`price <= max_price`) in `search_listings()` is handled by a strict numerical check in Python. Once `max_price` is parsed from the query, filtering out items that exceed the budget is completely deterministic and should succeed 100% of the time.
 
 ---
 
