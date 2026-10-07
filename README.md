@@ -63,8 +63,8 @@ Key listing fields identified from `data/listings.json`:
 
 ### `search_listings`
 
-- **What it does:** Searches `data/listings.json` by matching description keywords against titles and descriptions, with optional size and maximum price filters.
-- **Inputs:** `description` (str), `size` (str or None), `max_price` (float or None)
+- **What it does:** Searches `data/listings.json` by matching description keywords against titles, descriptions, categories, style tags, and brands, with optional size and inclusive maximum price filters.
+- **Inputs:** `description` (str), `size` (str or None — matched case-insensitively against tokenized size sets to handle dual sizes like "S/M" while avoiding substring traps like "s" matching "US 9"; "One Size" matches all queries), `max_price` (float or None)
 - **Returns:** A list of matching listing dictionaries (containing fields like `id`, `title`, `price`, `size`, `platform`, `brand`, etc.) sorted by relevance score.
 - **When it has nothing:** An empty list `[]`.
 
@@ -132,18 +132,39 @@ $ python app.py ask '...'
 **The three tools, tested one at a time**
 
 ```
-$ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
-
+$ python -c "from tools import search_listings; print(search_listings('jeans size M'))"
+[{'id': 'lst_001', 'title': "Vintage Levi's 501 Jeans — Medium Wash", 'description': 'Classic 501s in a perfect medium wash. Some light fading at the knees which adds to the vintage look. No rips or stains.', 'category': 'bottoms', 'style_tags': ['vintage', 'classic', 'denim', 'streetwear'], 'size': 'W30 L30', 'condition': 'good', 'price': 38.0, 'colors': ['blue', 'indigo'], 'brand': "Levi's", 'platform': 'depop'}, {'id': 'lst_009', 'title': 'Platform Mary Janes — Black Patent', 'description': 'Patent leather platform Mary Janes. 1.5 inch platform. Some light scuffing on the toe box but nothing major. UK size 5.', 'category': 'shoes', 'style_tags': ['y2k', 'goth', 'platform', '90s'], 'size': 'US 7', 'condition': 'good', 'price': 55.0, 'colors': ['black'], 'brand': 'Demonia', 'platform': 'depop'}, {'id': 'lst_012', 'title': 'Oversized Crewneck Sweatshirt — Vintage Navy', 'description': 'Perfectly faded navy crewneck. Genuinely vintage — not manufactured distressed. Ribbed cuffs and hem. No graphics, clean.', 'category': 'tops', 'style_tags': ['vintage', 'basics', 'oversized', 'classic'], 'size': 'XL (fits oversized)', 'condition': 'good', 'price': 20.0, 'colors': ['navy'], 'brand': None, 'platform': 'thredUp'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_019', 'title': 'Platform Sneakers — White Chunky Sole', 'description': 'White chunky platform sneakers. Very late 90s / early 2000s energy. Velcro straps. True to size. Some sole yellowing.', 'category': 'shoes', 'style_tags': ['y2k', 'platform', '90s', 'streetwear'], 'size': 'US 8', 'condition': 'good', 'price': 48.0, 'colors': ['white'], 'brand': None, 'platform': 'poshmark'}, {'id': 'lst_027', 'title': 'Oversized College Crewneck — Faded Red', 'description': 'Classic college-style crewneck in a beautifully faded red. No school name — just a plain athletic crewneck. Roomy fit.', 'category': 'tops', 'style_tags': ['vintage', 'athletic', 'oversized', 'classic'], 'size': 'XL', 'condition': 'good', 'price': 21.0, 'colors': ['red', 'faded red'], 'brand': None, 'platform': 'thredUp'}, {'id': 'lst_031', 'title': 'Baggy Carpenter Jeans — Dark Wash', 'description': 'Baggy carpenter jeans with hammer loop on the side. Dark wash. Sits at the waist. Major 90s workwear vibes.', 'category': 'bottoms', 'style_tags': ['90s', 'vintage', 'streetwear', 'baggy', 'workwear'], 'size': 'W32', 'condition': 'good', 'price': 36.0, 'colors': ['dark blue', 'indigo'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_034', 'title': 'Bucket Hat — Reversible, Brown Plaid', 'description': 'Reversible bucket hat — plaid on one side, solid tan on the other. Unstructured brim. One size fits most.', 'category': 'accessories', 'style_tags': ['90s', 'streetwear', 'vintage', 'accessories'], 'size': 'One Size', 'condition': 'excellent', 'price': 14.0, 'colors': ['brown', 'tan', 'plaid'], 'brand': None, 'platform': 'thredUp'}, {'id': 'lst_035', 'title': 'Low-Top Canvas Sneakers — Off-White', 'description': 'Classic low-top canvas sneakers in off-white. Very minimal. Some light yellowing on the sole edges from age. Size 9.', 'category': 'shoes', 'style_tags': ['classic', 'minimal', 'streetwear', 'basics'], 'size': 'US 9', 'condition': 'good', 'price': 20.0, 'colors': ['off-white', 'cream'], 'brand': None, 'platform': 'poshmark'}, {'id': 'lst_037', 'title': 'Straight Leg Black Jeans — Faded', 'description': 'Faded black straight-leg jeans. Sits at the hips, classic fit. Slightly cropped length. No rips, just natural fading.', 'category': 'bottoms', 'style_tags': ['vintage', 'classic', 'grunge', 'denim'], 'size': 'W28', 'condition': 'good', 'price': 30.0, 'colors': ['black', 'faded black'], 'brand': "Levi's", 'platform': 'thredUp'}]
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
+Hey! As your thrift stylist, I give these Vintage Levi's 501 Jeans a resounding **yes**. 501s are the holy grail of denim—they have that rigid, straight-leg fit that only gets better with time, and the light fading at the knees gives them instant character without feeling thrashed. 
 
+Since you already own some great basics and streetwear staples, these jeans will slot right into your rotation. Here are two ways to style your new piece using items straight from your closet:
+
+### Look 1: Off-Duty Streetwear
+* **Top:** Oversized grey crewneck sweatshirt
+* **Bottoms:** Vintage Levi's 501 Jeans — Medium Wash
+* **Shoes:** Chunky white sneakers
+* **Accessories:** Black crossbody bag
+
+**Why it works:** 
+This is the ultimate effortless, high-low vintage formula. Because your grey crewneck is *really* oversized and drops below the hip, pairing it with the straight-leg cut of the 501s creates that coveted relaxed, skate-inspired silhouette. Tossing on the chunky white sneakers ties the sporty vibe together, while the black crossbody bag keeps it practical and pulled-together for everyday errands.
+
+### Look 2: Edgy Casual
+* **Top:** White ribbed tank top
+* **Outerwear:** Vintage black denim jacket
+* **Bottoms:** Vintage Levi's 501 Jeans — Medium Wash
+* **Shoes:** Black combat boots
+* **Accessories:** Brown leather belt
+
+**Why it works:**
+You can never go wrong with a double-denim moment, especially when mixing black and medium-wash indigo. Tucking the fitted white ribbed tank into the 501s and cinching it with your brown leather belt creates a clean, defined waistline. Layering your slightly cropped vintage black denim jacket over top plays with proportions against the straight-leg jeans, and grounding the whole fit with black combat boots adds a subtle grunge edge.
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
-
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
+Found these vintage Levi's 501s on depop for $38 and I am never taking them off. They have that exact broken-in medium wash with the best slight fading at the knees. Just threw them on with my favorite white sneakers and the fit is unreal.
 ```
 
 ---
