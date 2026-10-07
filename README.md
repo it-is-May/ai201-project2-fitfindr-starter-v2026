@@ -208,15 +208,15 @@ Found these vintage Levi's 501s on depop for $38 and I am never taking them off.
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked Claude to build `_parse_query` in `agent.py` using regex to extract `description`, `size`, and `max_price` from plain-language user search queries.
+- *What came back:* The generated function extracted prices and sizes correctly, but its description parser kept filler words like "looking", "for", and "under", causing `search_listings` to fail on fuzzy string matching.
+- *What I changed:* I added a `_STOPWORDS` set to filter out conversational filler words and query noise before constructing `parsed["description"]`, ensuring clean search terms reached `search_listings`.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked Claude to implement `create_fit_card` in `tools.py` using the Gemini model to turn the outfit suggestion and selected listing into a short 2-4 sentence social media caption.
+- *What came back:* The model prompt returned long, overly formal paragraphs and occasionally failed when listing fields like `brand` were missing or `None`.
+- *What I changed:* I tuned the prompt to strictly request a 2-4 sentence caption and added fallback handling if the model response was empty or unavailable, ensuring the tool always returns a string without throwing an exception.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
