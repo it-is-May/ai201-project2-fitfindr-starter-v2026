@@ -13,10 +13,13 @@ Build and test your three tools in `tools.py` first. Then come here.
     python agent.py          runs both example paths below
 """
 
+import re
+
 import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
+from utils.data_loader import get_example_wardrobe
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -49,7 +52,7 @@ def new_session(query: str, wardrobe: dict) -> dict:
 
 # ── planning loop ─────────────────────────────────────────────────────────────
 
-def run_agent(query: str, wardrobe: dict) -> dict:
+def run_agent(query: str, wardrobe: dict | None = None) -> dict:
     """
     Run the loop once and return the finished session.
 
@@ -105,11 +108,91 @@ def run_agent(query: str, wardrobe: dict) -> dict:
       • A handler for ModelUnavailable, so a bad key produces a message rather
         than a stack trace. The import is already at the top of this file.
     """
+    if wardrobe is None:
+        wardrobe = get_example_wardrobe()
     session = new_session(query, wardrobe)
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    session["parsed"] = _parse_query(session["query"])
+    session["search_results"] = search_listings(
+        session["parsed"]["description"],
+        size=session["parsed"]["size"],
+        max_price=session["parsed"]["max_price"],
+    )
+
+    # The branch: nothing found means stop here, before any model call.
+    if not session["search_results"]:
+        session["error"] = _no_results_message(session["parsed"])
+        return session
+
+    session["selected_item"] = session["search_results"][0]
+
+    session["outfit_suggestion"] = suggest_outfit(
+        session["selected_item"], session["wardrobe"]
+    )
+    session["fit_card"] = create_fit_card(
+        session["outfit_suggestion"], session["selected_item"]
+    )
     return session
+
+
+# ── query parsing ─────────────────────────────────────────────────────────────
+
+_PRICE_RE = re.compile(
+    r"(?:(?:under|below|less than|up to|max(?:imum)?|at most|<=?)\s*\$?\s*(\d+(?:\.\d+)?)"
+    r"|\$\s*(\d+(?:\.\d+)?))",
+    re.IGNORECASE,
+)
+_SIZE_RE = re.compile(
+    r"\bsize\s+(us\s*\d+(?:\.\d+)?|w\d+(?:\s*l\d+)?|[a-z0-9.]+(?:/[a-z0-9.]+)?)",
+    re.IGNORECASE,
+)
+# Filler words would otherwise match inside almost every listing's text.
+_STOPWORDS = {
+    "a", "an", "the", "i", "im", "i'm", "me", "my", "we", "want", "need", "looking",
+    "look", "for", "find", "get", "show", "some", "something", "any", "please", "in",
+    "on", "of", "to", "with", "and", "or", "size", "under", "below", "than", "less",
+    "up", "max", "maximum", "most", "at", "that", "is", "it", "like", "would", "dollars",
+}
+
+
+def _parse_query(query: str) -> dict:
+    """
+    Pull description, size and max_price out of a plain-language query with
+    regexes: "vintage graphic tee under $30, size M" ->
+    {"description": "vintage graphic tee", "size": "M", "max_price": 30.0}.
+    """
+    remaining = query or ""
+
+    max_price = None
+    price_match = _PRICE_RE.search(remaining)
+    if price_match:
+        max_price = float(price_match.group(1) or price_match.group(2))
+        remaining = remaining.replace(price_match.group(0), " ", 1)
+
+    size = None
+    size_match = _SIZE_RE.search(remaining)
+    if size_match:
+        size = size_match.group(1).strip()
+        remaining = remaining.replace(size_match.group(0), " ", 1)
+
+    words = re.findall(r"[a-z0-9']+", remaining.lower())
+    description = " ".join(w for w in words if w not in _STOPWORDS)
+    return {"description": description, "size": size, "max_price": max_price}
+
+
+def _no_results_message(parsed: dict) -> str:
+    """Say what was searched and which constraint the user could loosen."""
+    searched = f"'{parsed['description']}'"
+    suggestions = ["broadening your search terms"]
+    if parsed["size"]:
+        searched += f" in size {parsed['size']}"
+        suggestions.insert(0, "choosing a different size")
+    if parsed["max_price"] is not None:
+        searched += f" under ${parsed['max_price']:g}"
+        suggestions.insert(0, "increasing your budget")
+    if len(suggestions) > 1:
+        suggestions[-1] = f"or {suggestions[-1]}"
+    return f"No listings found matching {searched}. Try {', '.join(suggestions)}."
 
 
 # ── running it directly ───────────────────────────────────────────────────────

@@ -125,8 +125,36 @@ Key listing fields identified from `data/listings.json`:
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ python app.py ask 'vintage graphic tee under $30'
+Found:   Y2K Baby Tee — Butterfly Print — $18.0 on depop
 
+Outfit:  Hey bestie! As your thrift stylist, I am *obsessed* with this find—a Y2K baby tee with a butterfly print is an absolute staple for the current vintage revival. Because it’s fitted and cropped, it’s going to give you that iconic early 2000s silhouette, and since it runs a little small, it’ll hug you in all the right places.
+
+Here are two killer ways to style your new piece using items already in your closet:
+
+### Look 1: The Ultimate Y2K Streetwear Vibe
+* **Top:** Y2K Baby Tee — Butterfly Print
+* **Bottoms:** Baggy straight-leg jeans, dark wash
+* **Outerwear:** Vintage black denim jacket
+* **Shoes:** Chunky white sneakers
+* **Accessories:** Black crossbody bag
+
+**Why it works:** This is the ultimate proportion-play outfit! The fitted, cropped nature of the baby tee balances out the voluminous silhouette of your high-waisted, baggy dark-wash jeans. Throwing on the slightly cropped vintage black denim jacket adds a cool-girl textural contrast while keeping the Y2K energy alive, and the chunky white sneakers tie the whole streetwear aesthetic together seamlessly.
+
+### Look 2: Soft Contrast Crossover
+* **Top:** Y2K Baby Tee — Butterfly Print
+* **Bottoms:** Wide-leg khaki trousers
+* **Outerwear:** Black cropped zip hoodie (worn open or layered over)
+* **Shoes:** Black combat boots
+* **Accessories:** Brown leather belt, Black crossbody bag
+
+**Why it works:** This outfit leans into that cool juxtaposition between sweet and edgy. The delicate, pastel butterfly print on the baby tee softens up the structured, minimalist wide-leg khaki trousers. Adding the black combat boots and the black cropped zip hoodie grounds the look with a touch of grunge, creating a really effortless, high-low style moment.
+
+Both of these are total wins–definitely add this baby tee to your cart!
+
+Fit card: found the ultimate early 2000s butterfly tee on depop for $18 and I honestly might never take it off. the pink and purple print is giving major nostalgic princess vibes and it fits like a literal glove.
+
+2 model calls this session, 1003 prompt + 463 output tokens
 ```
 
 **The three tools, tested one at a time**
