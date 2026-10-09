@@ -20,6 +20,7 @@ import trace
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 from utils.data_loader import get_example_wardrobe
+from mcp_client import call_tool
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -113,10 +114,12 @@ def run_agent(query: str, wardrobe: dict | None = None) -> dict:
     session = new_session(query, wardrobe)
 
     session["parsed"] = _parse_query(session["query"])
-    session["search_results"] = search_listings(
-        session["parsed"]["description"],
-        size=session["parsed"]["size"],
-        max_price=session["parsed"]["max_price"],
+    session["search_results"] = call_tool("search_listings",
+        {
+            "description": session["parsed"]["description"],
+            "size": session["parsed"]["size"],
+            "max_price": session["parsed"]["max_price"],
+        },
     )
 
     # The branch: nothing found means stop here, before any model call.
