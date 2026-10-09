@@ -299,22 +299,80 @@ that produced it:
 
 **Happy path**
 
-```
+```text
+$ python app.py ask 'corduroy pants under $35' --trace
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 2 items: Corduroy Wide-Leg Pants — Rust, Low-Rise Cargo Pants — Khaki
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey! As your thrift stylist, I am so excited about these **Corduroy Wide-Leg Pants — Rust**. Rust corduroy is …
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: Found my absolute holy grail 70s vibe on depop—these rust corduroy wide-leg pants for $32 and I am never takin…
 
+  Found:    Corduroy Wide-Leg Pants — Rust — $32.0 on depop
+
+  Outfit:   Hey! As your thrift stylist, I am so excited about these **Corduroy Wide-Leg Pants — Rust**. Rust corduroy is an absolute holy grail find for a vintage, earth-toned wardrobe—it instantly brings that effortless 70s warmth to any outfit. 
+
+The best part? You already have some fantastic staple pieces in your closet that will make these pants sing. Here are two ways to style your new find using what you already own:
+
+### Outfit 1: The 70s Earth-Tone Minimalist
+- **Top:** White ribbed tank top
+
+- **Accessory:** Brown leather belt
+
+- **Footwear:** Chunky white sneakers *(or grab your Black combat boots if you want a more grounded look)*
+
+
+**Why it works:** 
+Tucking the **White ribbed tank top** into the high-waisted cords creates a gorgeous, clean silhouette that highlights the waist while letting the wide-leg drape effortlessly. Adding the **Brown leather belt** pulls in those classic 70s earth tones and ties the rich rust color together with a warm accent. Finish it off with the **Chunky white sneakers** for a fresh, modern-meets-vintage contrast.
+
+### Outfit 2: Cozy Retro Grunge
+- **Top:** Oversized grey crewneck sweatshirt
+
+- **Outerwear:** Vintage black denim jacket
+
+- **Footwear:** Black combat boots
+
+- **Accessory:** Black crossbody bag
+
+
+**Why it works:**
+Since these cords have a relaxed, wide-leg cut, they love a bit of volume on top. Throwing on the **Oversized grey crewneck sweatshirt** gives you that perfectly slouchy, effortless cozy vibe. Layering the **Vintage black denim jacket** over it adds structure and a bit of vintage edge, which is seamlessly anchored by the **Black combat boots** and **Black crossbody bag** for a cohesive, textured look.
+
+  Fit card: Found my absolute holy grail 70s vibe on depop—these rust corduroy wide-leg pants for $32 and I am never taking them off. They are so cozy and instantly make every outfit look like I raided a very cool person's vintage closet.
+
+2 model calls this session, 975 prompt + 446 output tokens
 ```
 
 **Empty search**
 
+```text
+$ python app.py ask 'neon spacesuit size XXXL under $10' --trace
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+
+  No listings found matching 'neon spacesuit' in size XXXL under $10. Try increasing your budget, choosing a different size, or broadening your search terms.
+
+0 model calls this session
 ```
 
+**Model unavailable**
+
+```text
+$ python app.py ask '90s leather bomber jacket under $80'
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 10 items: 90s Leather Bomber — Black, 90s Track Jacket — Navy/White Stripe, Platform Mary Janes — Black Patent … +7 more
+[2] ModelUnavailable
+    →   model unavailable, stopping run
+
+  The model rejected your API key. Check GEMINI_API_KEY in your .env file, or create a fresh key at aistudio.google.com.
+
+1 model calls this session
 ```
-
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
-
-
 
 ---
 

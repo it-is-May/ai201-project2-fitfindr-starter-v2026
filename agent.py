@@ -113,6 +113,9 @@ def run_agent(query: str, wardrobe: dict | None = None) -> dict:
         wardrobe = get_example_wardrobe()
     session = new_session(query, wardrobe)
 
+    # Start a fresh trace for this run
+    trace.start_trace()
+
     session["parsed"] = _parse_query(session["query"])
     session["search_results"] = call_tool("search_listings",
         {
@@ -122,6 +125,12 @@ def run_agent(query: str, wardrobe: dict | None = None) -> dict:
         },
     )
 
+    trace.step(
+        "search_listings (via MCP)",
+        inputs=session["parsed"],
+        returned=session["search_results"]
+    )
+
     # The branch: nothing found means stop here, before any model call.
     if not session["search_results"]:
         session["error"] = _no_results_message(session["parsed"])
@@ -129,12 +138,29 @@ def run_agent(query: str, wardrobe: dict | None = None) -> dict:
 
     session["selected_item"] = session["search_results"][0]
 
-    session["outfit_suggestion"] = suggest_outfit(
-        session["selected_item"], session["wardrobe"]
-    )
-    session["fit_card"] = create_fit_card(
-        session["outfit_suggestion"], session["selected_item"]
-    )
+    try:
+        session["outfit_suggestion"] = suggest_outfit(
+            session["selected_item"], session["wardrobe"]
+        )
+        trace.step(
+            "suggest_outfit",
+            inputs={"new_item": session["selected_item"], "wardrobe": session["wardrobe"]},
+            returned=session["outfit_suggestion"]
+        )
+
+        session["fit_card"] = create_fit_card(
+            session["outfit_suggestion"], session["selected_item"]
+        )
+        trace.step(
+            "create_fit_card",
+            inputs={"outfit": session["outfit_suggestion"], "new_item": session["selected_item"]},
+            returned=session["fit_card"]
+        )
+    except ModelUnavailable as e:
+        session["error"] = str(e)
+        trace.step("ModelUnavailable", note="model unavailable, stopping run")
+        return session
+
     return session
 
 
