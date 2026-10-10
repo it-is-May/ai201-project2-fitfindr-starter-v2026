@@ -15,23 +15,44 @@ own criteria need — these are a starting point, not a fixed set.
 
 SCENARIOS = [
     {
-        # A query the data can match. Criterion 1.
+        # Criterion 1: A matching query completes all three tools
         "name": "matching query completes",
         "query": "vintage graphic tee under $30",
         "wardrobe": "example",
         "criterion": 1,
     },
     {
-        # A query nothing can match. Criterion 2 — the branch.
+        # Criterion 2: An impossible query stops early (the branch)
         "name": "impossible query stops early",
         "query": "designer ballgown size XXS under $5",
         "wardrobe": "example",
         "criterion": 2,
     },
     {
-        # A user with nothing saved. One of unit 4's three failure modes.
-        "name": "empty wardrobe",
+        # Criterion 3: State integrity across tool transitions
+        "name": "state integrity item matching",
+        "query": "corduroy pants under $35",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        # Criterion 4: Fit card includes listing price, platform, and title
+        "name": "fit card metadata inclusion",
         "query": "denim jacket under $50",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        # Criterion 5: Search respects maximum price constraint
+        "name": "search respects price ceiling",
+        "query": "oversized flannel shirt under $25",
+        "wardrobe": "example",
+        "criterion": 5,
+    },
+    {
+        # Diagnostic run: failure mode testing for empty wardrobe (optional, non-criterion)
+        "name": "empty wardrobe diagnostic",
+        "query": "vintage graphic tee under $30",
         "wardrobe": "empty",
         "criterion": None,
     },

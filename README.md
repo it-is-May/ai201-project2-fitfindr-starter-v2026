@@ -238,17 +238,160 @@ Found these vintage Levi's 501s on depop for $38 and I am never taking them off.
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. State integrity across tool transitions | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card includes price, platform, and title | 4 of 5 | PASS | FAIL | FAIL | FAIL | PASS | MISSED (2/5) |
+| 5. Search respects maximum price constraint | 5 of 5 | PASS | PASS | PASS* | PASS | PASS | MET (5/5) |
 
-**Real output from one try**, pasted as text, naming the file and function
-that produced it:
+Source: `results/run_2026-10-10_1209_before.md` (5 tries per scenario, temperature 0.9, caching off).
+
+How I scored the tries (the eval script doesn't grade, so these were judged by hand from the logged output):
+
+- **1:** PASS if the trace shows `search_listings` → `suggest_outfit` → `create_fit_card` and a fit card came back. Query: `vintage graphic tee under $30`.
+- **2:** PASS if the run stopped after the first tool with 0 results and the message named what to change. Query: `designer ballgown size XXS under $5`. All five stopped with "Try increasing your budget, choosing a different size, or broadening your search terms."
+- **3:** PASS if the outfit and fit card were about the same item as `selected_item`. Query: `corduroy pants under $35`. The trace only logs the input keys (`new_item`, `wardrobe`), not the title, so I checked this from the text: all five outfits and fit cards are about Corduroy Wide-Leg Pants — Rust, which is the selected item each time, and not the other result, Low-Rise Cargo Pants — Khaki.
+- **4:** PASS if the card has the `$` price, the platform, and the item's title, with the title's words recognizably present in any order (I did not require the exact string with the em dash). Query: `denim jacket under $50`; the item is Denim Jacket — Light Wash, Cropped, $42, poshmark. All five cards had `$42` and poshmark. Tries 1 and 5 said "cropped light wash denim jacket" (PASS). Tries 2 and 4 dropped "denim" ("cropped light-wash jacket"), and Try 3 only said "light-wash crop" (FAIL). Under an exact-title reading this would be 0/5, so the verdict is MISSED either way.
+- **5:** PASS if `selected_item` price ≤ the ceiling. Query: `oversized flannel shirt under $25`; the selected item was $22 in all five tries. \*Try 3 stopped after the search because the model was unreachable ("Server disconnected without sending a response"). The price check still holds there ($22 ≤ $25), so I scored it PASS, but it was not a successful run. Counting only the four successful runs, it is still 4/4.
+
+**Real output from one try per criterion**, pasted as text from
+`results/run_2026-10-10_1209_before.md`, naming the file and function that
+produced each part. The log itself was written by `run_eval.py::main`, which
+calls `agent.py::run_agent` for every try. In the traces, `search_listings (via MCP)`
+is `mcp_server.py::search_listings`, `suggest_outfit` is `tools.py::suggest_outfit`,
+and `create_fit_card` is `tools.py::create_fit_card`.
+
+**Criterion 1 — matching query completes all three tools** (Try 1, `vintage graphic tee under $30`, example wardrobe)
+
+Loop and trace: `agent.py::run_agent`. Search: `mcp_server.py::search_listings`. Outfit: `tools.py::suggest_outfit`. Fit card: `tools.py::create_fit_card`.
 
 ```
+- stopped early: no
+- selected_item: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+- search_results: 10
 
+Trace:
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +7 more
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey babe! As your thrift-fashion stylist, I am so glad you're eyeing this Y2K baby tee—it's an absolute vintag…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: manifested the ultimate early 2000s model-off-duty vibe today and I'm honestly never taking this off. scrolled…
+
+Outfit suggestion (tools.py::suggest_outfit), first look:
+Hey babe! As your thrift-fashion stylist, I am so glad you're eyeing this Y2K baby tee—it's an absolute vintage score. Because it's fitted and cropped with that dreamy butterfly graphic, the secret is balancing its dainty energy with some structure.
+
+### Look 1: The Y2K Streetwear Contrast
+* New piece: Y2K Baby Tee — Butterfly Print
+* Wardrobe piece 1: Baggy straight-leg jeans, dark wash
+* Wardrobe piece 2: Black cropped zip hoodie
+* Wardrobe piece 3: Chunky white sneakers
+* Wardrobe piece 4: Black crossbody bag
+
+Fit card (tools.py::create_fit_card):
+manifested the ultimate early 2000s model-off-duty vibe today and I'm honestly never taking this off. scrolled past it on depop for just $18.00 and my whole feed is jealous. obsessed is an understatement.
+```
+
+**Criterion 2 — impossible query stops before the second tool** (Try 1, `designer ballgown size XXS under $5`, example wardrobe)
+
+Search returned `[]`: `mcp_server.py::search_listings`. The branch that stopped the run and produced the message: `agent.py::run_agent`. `tools.py::suggest_outfit` and `tools.py::create_fit_card` were never called, which is why the trace has one step.
+
+```
+- stopped early: yes — No listings found matching 'designer ballgown' in size XXS under $5. Try increasing your budget, choosing a different size, or broadening your search terms.
+- selected_item: (none)
+- search_results: 0
+
+Trace:
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+```
+
+**Criterion 3 — state integrity across tool transitions** (Try 1, `corduroy pants under $35`, example wardrobe)
+
+The selected item is carried by `agent.py::run_agent` from the search result into `tools.py::suggest_outfit` and `tools.py::create_fit_card`. Search returned two items (the Rust cords and the Khaki cargo pants), and both downstream outputs are about the Rust cords.
+
+```
+- stopped early: no
+- selected_item: Corduroy Wide-Leg Pants — Rust ($32.0, depop)
+- search_results: 2
+
+Trace:
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 2 items: Corduroy Wide-Leg Pants — Rust, Low-Rise Cargo Pants — Khaki
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey babe! As your thrift stylist, I am so excited about these corduroy wide-leg pants. Rust is such an incredi…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: Found my dream 70s autumn pants on Depop for $32 and I am never taking them off. The wide-leg rust corduroy vi…
+
+Outfit suggestion (tools.py::suggest_outfit), opening:
+Hey babe! As your thrift stylist, I am so excited about these corduroy wide-leg pants. Rust is such an incredible, rich earth tone, and that 70s cottagecore vibe is *so* fun to style. Plus, the minor pilling on the seat is super easy to clean up with a fabric shaver and totally worth it for a vintage piece like this.
+
+Fit card (tools.py::create_fit_card):
+Found my dream 70s autumn pants on Depop for $32 and I am never taking them off. The wide-leg rust corduroy vibe is just too good, and honestly, a little fabric shaver action on the seat is so worth it for this fit.
+```
+
+**Criterion 4 — fit card includes price, platform, and title** (`denim jacket under $50`, example wardrobe; selected item is Denim Jacket — Light Wash, Cropped, $42, poshmark)
+
+Both fit cards are from `tools.py::create_fit_card`, run in `agent.py::run_agent` after `mcp_server.py::search_listings` returned 7 items. Try 1 passed and Try 3 failed.
+
+```
+Try 1 (PASS) fit card:
+scored this cropped light wash denim jacket on poshmark for $42 and honestly the structured shoulders are doing things for me. totally a blank canvas so i’m trying to decide if I want to embroider it or just leave it classic. such an easy streetwear staple to throw over literally anything!
+
+Try 3 (FAIL: price and platform present, title words missing) fit card:
+finally found the ultimate 90s streetwear staple on poshmark for just $42.00. the structured shoulders on this light-wash crop are seriously unmatched, and it's practically begging to be loaded up with pins. already planning on wearing it with everything in my closet.
+
+Try 3 trace:
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 7 items: Denim Jacket — Light Wash, Cropped, Vintage Levi's 501 Jeans — Medium Wash, 90s Track Jacket — Navy/White Stripe … +4 more
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey! As your thrift stylist, I am so glad you're eyeing this light-wash cropped denim jacket. Since you alread…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: finally found the ultimate 90s streetwear staple on poshmark for just $42.00. the structured shoulders on this…
+```
+
+**Criterion 5 — search respects maximum price constraint** (`oversized flannel shirt under $25`, example wardrobe)
+
+Search and filtering: `mcp_server.py::search_listings`. The selected item that reached `tools.py::suggest_outfit` and `tools.py::create_fit_card` came through `agent.py::run_agent`. Try 1 completed. In Try 3 the model was unreachable after the search, so the loop in `agent.py::run_agent` stopped at `tools.py::suggest_outfit`; the selected item was still $22.
+
+```
+Try 1:
+- stopped early: no
+- selected_item: Oversized Flannel Shirt — Plaid Red/Black ($22.0, thredUp)
+- search_results: 5
+
+Trace:
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 5 items: Oversized Flannel Shirt — Plaid Red/Black, Oversized Crewneck Sweatshirt — Vintage Navy, Vintage Polo Shirt — Forest Green … +2 more
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Hey! As your thrift stylist, I give this red and black flannel an absolute green light. An oversized flannel i…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: scored this red and black flannel on thredUp for $22 and my 90s grunge dreams are officially complete. it’s th…
+
+Try 3 (model unavailable after search):
+- stopped early: yes — Couldn't reach the model: Server disconnected without sending a response.
+- selected_item: Oversized Flannel Shirt — Plaid Red/Black ($22.0, thredUp)
+- search_results: 5
+
+Trace:
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 5 items: Oversized Flannel Shirt — Plaid Red/Black, Oversized Crewneck Sweatshirt — Vintage Navy, Vintage Polo Shirt — Forest Green … +2 more
+[2] ModelUnavailable
+      →    model unavailable, stopping run
 ```
 
 ---
