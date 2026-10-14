@@ -398,33 +398,16 @@ Trace:
 
 ## Verdicts and Diagnoses
 
-<!-- MET or MISSED per criterion against LAST UNIT's target, plus a sentence on
-     how you decided.
+### Summary of Verdicts
+* **Criterion 1 (Matching query completes all 3 tools):** **MET (5/5)** — Target was 4 of 5. All 5 tries successfully completed search, outfit recommendation, and fit card generation.
+* **Criterion 2 (Impossible query stops before tool 2):** **MET (5/5)** — Target was 5 of 5. Deterministic `if not search_results` branch stopped execution early across all 5 tries.
+* **Criterion 3 (State integrity across transitions):** **MET (5/5)** — Target was 5 of 5. Session state consistently preserved the selected item title and parameters through tool transitions.
+* **Criterion 4 (Fit card includes price, platform, and title):** **MISSED (2/5)** — Target was 4 of 5. While price ($42) and platform ("poshmark") were present in all 5 cards, exact title words were omitted/paraphrased in 3 of 5 tries (Tries 2, 3, and 4).
+* **Criterion 5 (Search respects maximum price constraint):** **MET (5/5)** — Target was 5 of 5. Python filtering (`price <= max_price`) in `search_listings()` successfully constrained output prices.
 
-     Then, for every miss: which of the four places it happened — a tool, the
-     loop's branch, the session, or the model's output — AND the mechanism.
-
-     Not a diagnosis:  "The fit card was bad."
-     A diagnosis:      "The fit card criterion missed on 2 of 5 items. Both had
-                        an empty brand field. My prompt puts the brand in the
-                        first sentence, so the card opened with a blank and read
-                        like a fragment. The tool worked; the prompt assumed a
-                        field that isn't always there."
-
-     Look for a pattern. Three misses on the same tool is one problem, not
-     three. -->
-
-| # | Criterion | Target | Verdict | How I decided |
-|---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
-
-**Diagnoses**
-
-
+### Diagnosis of Misses (Criterion 4)
+* **Step:** Model output generation in `tools.py::create_fit_card`.
+* **Mechanism:** Prompt specification gap in model instruction. The tool prompt in `create_fit_card` instructs the LLM to write a punchy social media caption but does not explicitly require retaining the verbatim title words of `new_item`. Consequently, the LLM frequently summarizes or paraphrases item descriptions (e.g., rendering "Denim Jacket — Light Wash, Cropped" as "light-wash crop"), leading to failed keyword matching across 3 of 5 runs.
 
 ---
 
