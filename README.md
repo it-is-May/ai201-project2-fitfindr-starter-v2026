@@ -394,8 +394,6 @@ Trace:
       →    model unavailable, stopping run
 ```
 
----
-
 ## Verdicts and Diagnoses
 
 ### Summary of Verdicts
@@ -509,21 +507,47 @@ $ python app.py ask '90s leather bomber jacket under $80'
 
      `python run_eval.py --label after` -->
 
-**What I changed:**
+**What I changed:** One prompt edit in `tools.py::create_fit_card`. The old prompt said "Mention the item, its price and the platform it was found on once each" and gave the model a single `Item:` line built by `_describe_listing`. The new prompt says "You MUST include the exact item title, its price, and the platform it was found on once each" and passes the title on its own `Item Title:` line, with the other details under `Item Details:`. Nothing else in the code changed.
 
-**Which failure it was meant to fix:**
+**Which failure it was meant to fix:** Criterion 4 (fit card includes price, platform, and title), which was MISSED (2/5) in the before run. The diagnosis was a prompt specification gap: the prompt asked for a punchy caption and only said to "mention the item", so the model paraphrased the title (for example "Denim Jacket — Light Wash, Cropped" became "cropped light-wash jacket") and dropped words like "denim". Price and platform were already present in all five before-run cards, so the edit targets only the title.
 
 ### Run Log — After
 
+After tightening the `create_fit_card` prompt in `tools.py` (it now says "You MUST include the exact item title, its price, and the platform" and passes the title as its own `Item Title:` line), I re-ran the same five scenarios with `python run_eval.py --label after`.
+
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools | 4 of 5 | FAIL | PASS | FAIL | FAIL | PASS | MISSED (2/5) |
+| 2. Impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. State integrity across tool transitions | 5 of 5 | PASS | PASS | FAIL | FAIL | FAIL | MISSED (2/5) |
+| 4. Fit card includes price, platform, and title | 4 of 5 | FAIL | PASS | FAIL | FAIL | FAIL | MISSED (1/5) |
+| 5. Search respects maximum price constraint | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Did it help, and how do I know:**
+Source: `results/run_2026-10-13_2112_after.md` (5 tries per scenario, temperature 0.9, caching off). Scored by hand with the same rules as the before run.
+
+**Most of the misses in this table come from the model API, not from my code.** Every FAIL in rows 1, 3 and 4 is a try that stopped with `Couldn't reach the model: 503 UNAVAILABLE` ("This model is currently experiencing high demand") before `create_fit_card` ran. Try 2 of the price-ceiling scenario stopped with "Server disconnected without sending a response". Across the five graded scenarios, 15 of 25 tries stopped early on a model error. The empty-wardrobe diagnostic lost one try the same way.
+
+- **1:** FAIL when the run did not reach a fit card. Tries 2 and 5 completed all three tools. Tries 1, 3 and 4 hit a 503 (Try 1 at `create_fit_card`, Tries 3 and 4 at `suggest_outfit`).
+- **2:** This path never calls the model, so it was unaffected. All five stopped after `search_listings` with 0 results and the "Try increasing your budget…" message.
+- **3:** PASS if the outfit and fit card were about the selected item. Tries 1 and 2 produced outfits about Corduroy Wide-Leg Pants — Rust, which is `selected_item`. In Tries 3, 4 and 5 the run stopped before `suggest_outfit`, so there was nothing downstream to compare. I scored those FAIL under the criterion's wording, but `selected_item` was correct in all five traces, so this is not evidence of a state bug.
+- **4:** PASS if the card has the price, the platform and the title's words. Only Try 2 produced a card. The other four hit a 503 (Tries 1, 3, 4 and 5).
+- **5:** PASS if `selected_item` price ≤ the ceiling. The selected item was $22 against a $25 ceiling in all five tries. As in the before run, the check holds even in tries that stopped early.
+
+**Criterion 4 — sample output** (Try 2, `denim jacket under $50`, from `results/run_2026-10-13_2112_after.md`, produced by `tools.py::create_fit_card`). Item: Denim Jacket — Light Wash, Cropped, $42, poshmark.
+
+After (tightened prompt):
+
+```
+Found the ultimate blank canvas streetwear staple on poshmark for only $42.00. The structured shoulders on this Denim Jacket — Light Wash, Cropped are honestly insane, and I can't wait to style it with everything in my closet.
+```
+
+Before (original prompt, Try 2 from `results/run_2026-10-10_1209_before.md`), which dropped "denim" and the exact title:
+
+```
+Scored this cropped light-wash jacket on Poshmark for $42 and the structured shoulders are seriously everything. It’s totally blank right now, so I’m thinking about throwing some patches on it, but honestly it's already the ultimate throw-on-and-go streetwear piece.
+```
+
+**Did it help, and how do I know:** Not demonstrated. The formal count is MISSED (1/5), lower than before, but that is because four of the five denim-jacket tries never reached `create_fit_card`, not because the cards got worse. The one denim-jacket card that was produced has the exact title, the price and the platform. Across the whole after run, all 9 fit cards that were generated contain the item's exact title (corduroy's is lowercased), where the before run's denim-jacket cards had 0/5 exact titles (I only passed 2 of them for having the title's words recognizably present). That is encouraging, but it is 1 sample on the criterion's own scenario. I can't call Criterion 4 MET until I re-run when the model is available and get five complete tries.
 
 <!-- If it made things worse, say that. Honestly reported, that earns full
      credit and is more interesting than one that worked. -->
