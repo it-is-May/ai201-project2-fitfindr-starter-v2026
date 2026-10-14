@@ -197,27 +197,6 @@ Found these vintage Levi's 501s on depop for $38 and I am never taking them off.
 
 ---
 
-## How I Used AI
-
-<!-- Two specific moments. What you asked, what came back, what you changed.
-
-     "I used Claude to help me code" is not enough.
-
-     "I gave Claude my search_listings spec. It returned None on no match
-     instead of an empty list, so I changed it" is the level we want. -->
-
-**Moment 1**
-
-- *What I asked for:* I asked Claude to build `_parse_query` in `agent.py` using regex to extract `description`, `size`, and `max_price` from plain-language user search queries.
-- *What came back:* The generated function extracted prices and sizes correctly, but its description parser kept filler words like "looking", "for", and "under", causing `search_listings` to fail on fuzzy string matching.
-- *What I changed:* I added a `_STOPWORDS` set to filter out conversational filler words and query noise before constructing `parsed["description"]`, ensuring clean search terms reached `search_listings`.
-
-**Moment 2**
-
-- *What I asked for:* I asked Claude to implement `create_fit_card` in `tools.py` using the Gemini model to turn the outfit suggestion and selected listing into a short 2-4 sentence social media caption.
-- *What came back:* The model prompt returned long, overly formal paragraphs and occasionally failed when listing fields like `brand` were missing or `None`.
-- *What I changed:* I tuned the prompt to strictly request a 2-4 sentence caption and added fallback handling if the model response was empty or unavailable, ensuring the tool always returns a string without throwing an exception.
-
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
@@ -498,6 +477,8 @@ $ python app.py ask '90s leather bomber jacket under $80'
 1 model calls this session
 ```
 
+**On the MCP move:** Decoupling `search_listings` into a standalone Model Context Protocol (MCP) server in `mcp_server.py` executed successfully. The agent loop in `agent.py::run_agent` connects via `call_tool()` with identical input keys (`description`, `size`, `max_price`) and return listings format, ensuring downstream tools operated without interruption.
+
 ---
 
 ## The Improvement
@@ -562,7 +543,44 @@ Scored this cropped light-wash jacket on Poshmark for $42 and the structured sho
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
 
+> **Criteria 1, 3, & 4 (Model Availability & Intermittent 503 Errors):**
+> * **What I'd do next:** Re-run `python run_eval.py --label after` during off-peak hours when the Gemini API is not experiencing 503 high-demand rate limits to gather five clean, successful runs. For production use, I would implement an exponential backoff retry loop in `agent.py::run_agent` to gracefully handle transient API disconnects.
+> * **Why I stopped here:** The single completed try for Criterion 4 proved the tightened prompt successfully fixed title-dropping, but upstream API availability and time constraints prevented collecting five uninterrupted runs.
 
+---
+
+## How I Used AI
+
+<!-- Two specific moments. What you asked, what came back, what you changed.
+
+     "I used Claude to help me code" is not enough.
+
+     "I gave Claude my search_listings spec. It returned None on no match
+     instead of an empty list, so I changed it" is the level we want. -->
+
+**Moment 1**
+
+- *What I asked for:* I asked Claude to build `_parse_query` in `agent.py` using regex to extract `description`, `size`, and `max_price` from plain-language user search queries.
+- *What came back:* The generated function extracted prices and sizes correctly, but its description parser kept filler words like "looking", "for", and "under", causing `search_listings` to fail on fuzzy string matching.
+- *What I changed:* I added a `_STOPWORDS` set to filter out conversational filler words and query noise before constructing `parsed["description"]`, ensuring clean search terms reached `search_listings`.
+
+**Moment 2**
+
+- *What I asked for:* I asked Claude to implement `create_fit_card` in `tools.py` using the Gemini model to turn the outfit suggestion and selected listing into a short 2-4 sentence social media caption.
+- *What came back:* The model prompt returned long, overly formal paragraphs and occasionally failed when listing fields like `brand` were missing or `None`.
+- *What I changed:* I tuned the prompt to strictly request a 2-4 sentence caption and added fallback handling if the model response was empty or unavailable, ensuring the tool always returns a string without throwing an exception.
+
+**Moment 3**
+
+- *What I asked for:* I asked Claude Code to help implement `trace.step()` instrumentation in `agent.py::run_agent` and write a try-except handler for the `ModelUnavailable` exception.
+- *What came back:* The code properly logged inputs and outputs, but long model outputs flooded the terminal trace view.
+- *What I changed:* Adjusted string formatting to keep terminal trace outputs clean and scannable.
+
+**Moment 4**
+
+- *What I asked for:* I asked Claude Code to analyze why Criterion 4 missed due to prompt wording.
+- *What came back:* It identified that `tools.py::create_fit_card` lacked an explicit instruction to include verbatim title keywords, leading the LLM to paraphrase product titles.
+- *What I changed:* Updated the prompt string in `create_fit_card` to explicitly state: "You MUST include the exact item title, its price, and the platform" and introduced an explicit `Item Title:` line.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
